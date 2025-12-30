@@ -7,7 +7,6 @@
 
 import argparse
 import asyncio
-import os
 import urllib.parse
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
