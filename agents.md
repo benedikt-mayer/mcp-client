@@ -26,6 +26,7 @@ A small, focused reference for using the `mcp-client` example scripts and intera
 ## Testing & linting 🧪
 - Tests (if present) can be run with `pytest` inside the activated virtual environment.
 - Use `ruff` (or configured project tools) for linting/formatting.
+- **After every code change, run:** `ruff check --fix .` and `ruff format .` to ensure code quality and consistency.
 
 ## Troubleshooting ⚠️
 - If you see transport errors, confirm:
