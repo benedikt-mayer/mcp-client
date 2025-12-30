@@ -10,28 +10,34 @@ import asyncio
 import os
 import urllib.parse
 from mcp import ClientSession
+from mcp.client.streamable_http import streamable_http_client
+
 
 async def main():
-    parser = argparse.ArgumentParser(description="Call a running MCP server or start one locally.")
-    parser.add_argument("--server", help="Server URI to connect to. Examples: http://127.0.0.1:8000/mcp or https://server.example/mcp. If omitted the script will start the server locally.")
+    parser = argparse.ArgumentParser(
+        description="Call a running MCP server or start one locally."
+    )
+    parser.add_argument(
+        "--server",
+        help="Server URI to connect to. Examples: http://127.0.0.1:8000/mcp or https://server.example/mcp.",
+    )
     ns = parser.parse_args()
 
-    server_uri = ns.server or os.environ.get("MCP_SERVER")
+    server_uri = ns.server
 
-    # Only support HTTP(S) MCP servers. Require --server or MCP_SERVER env var.
+    # Only support HTTP(S) MCP servers. Require --server.
     if not server_uri:
-        raise SystemExit("Please specify --server or set MCP_SERVER to an http(s):// URI")
+        raise SystemExit(
+            "Please specify --server or set MCP_SERVER to an http(s):// URI"
+        )
 
     # Validate scheme and create an HTTP client context
     parsed = urllib.parse.urlparse(server_uri)
     scheme = parsed.scheme
     if scheme not in ("http", "https"):
-        raise ValueError(f"Unsupported server URI scheme: {scheme}. Use http:// or https://")
-
-    try:
-        from mcp.client.streamable_http import streamable_http_client
-    except Exception as e:
-        raise RuntimeError("HTTP transport not available in installed 'mcp' package: {}".format(e))
+        raise ValueError(
+            f"Unsupported server URI scheme: {scheme}. Use http:// or https://"
+        )
 
     client_ctx = streamable_http_client(server_uri)
 
@@ -73,6 +79,7 @@ async def main():
                 print("\n--- End ---\n")
             except Exception as e:
                 print("Tool returned non-text result:", e)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
