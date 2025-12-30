@@ -2,7 +2,6 @@
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from mcp import ClientSession
 
 
 @pytest.mark.asyncio
@@ -21,7 +20,7 @@ async def test_streamable_http_client_connection():
 @pytest.mark.asyncio
 async def test_client_list_and_call_tools():
     """Test complete workflow: list tools and call one."""
-    mock_session = AsyncMock(spec=ClientSession)
+    mock_session = AsyncMock()
 
     # Mock tools
     mock_tool = MagicMock()
@@ -58,7 +57,7 @@ async def test_client_list_and_call_tools():
 @pytest.mark.asyncio
 async def test_handle_tool_not_found():
     """Test handling when tool is not found."""
-    mock_session = AsyncMock(spec=ClientSession)
+    mock_session = AsyncMock()
 
     # Mock empty tools or tools without get_forecast
     mock_tool = MagicMock()
@@ -84,7 +83,7 @@ async def test_handle_tool_not_found():
 @pytest.mark.asyncio
 async def test_handle_tool_call_error():
     """Test handling when tool call fails."""
-    mock_session = AsyncMock(spec=ClientSession)
+    mock_session = AsyncMock()
 
     # Mock successful list
     mock_tool = MagicMock()
@@ -107,14 +106,16 @@ async def test_handle_tool_call_error():
 @pytest.mark.asyncio
 async def test_multiple_tools_available():
     """Test listing multiple tools and selecting the correct one."""
-    mock_session = AsyncMock(spec=ClientSession)
+    mock_session = AsyncMock()
 
     # Mock multiple tools
-    tools_data = [
-        MagicMock(name="save_forecast"),
-        MagicMock(name="get_forecast"),
-        MagicMock(name="list_locations"),
-    ]
+    tool1 = MagicMock()
+    tool1.name = "save_forecast"
+    tool2 = MagicMock()
+    tool2.name = "get_forecast"
+    tool3 = MagicMock()
+    tool3.name = "list_locations"
+    tools_data = [tool1, tool2, tool3]
     mock_list_response = MagicMock()
     mock_list_response.tools = tools_data
 

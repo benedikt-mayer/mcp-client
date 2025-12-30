@@ -8,7 +8,6 @@ import pytest
 # We'll test the components that can be tested in isolation
 
 
-@pytest.mark.asyncio
 async def test_uri_validation_valid_http():
     """Test that HTTP URIs are accepted."""
     import urllib.parse
@@ -18,7 +17,6 @@ async def test_uri_validation_valid_http():
     assert parsed.scheme in ("http", "https")
 
 
-@pytest.mark.asyncio
 async def test_uri_validation_valid_https():
     """Test that HTTPS URIs are accepted."""
     import urllib.parse
@@ -28,7 +26,6 @@ async def test_uri_validation_valid_https():
     assert parsed.scheme in ("http", "https")
 
 
-@pytest.mark.asyncio
 async def test_uri_validation_invalid_scheme():
     """Test that invalid URI schemes are rejected."""
     import urllib.parse
@@ -96,7 +93,6 @@ def test_args_construction():
     assert len(args) == 2
 
 
-@pytest.mark.asyncio
 async def test_mock_client_session():
     """Test that a mock ClientSession behaves as expected."""
     mock_session = AsyncMock()
@@ -115,7 +111,6 @@ async def test_mock_client_session():
     mock_session.list_tools.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_mock_tool_call():
     """Test that a mock tool call returns expected content."""
     mock_session = AsyncMock()
@@ -149,7 +144,6 @@ def test_result_content_extraction():
         pytest.fail("Failed to extract result content")
 
 
-@pytest.mark.asyncio
 async def test_server_uri_environment_variable():
     """Test that server URI can be read from environment."""
     import os
@@ -170,7 +164,6 @@ def test_invalid_server_uri_missing():
             )
 
 
-@pytest.mark.asyncio
 async def test_argparse_server_flag():
     """Test argument parsing for server flag."""
     import argparse
