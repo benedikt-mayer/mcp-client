@@ -27,6 +27,8 @@ A small, focused reference for using the `mcp-client` example scripts and intera
 - Tests (if present) can be run with `pytest` inside the activated virtual environment.
 - Use `ruff` (or configured project tools) for linting/formatting.
 - **After every code change, run:** `ruff check --fix .` and `ruff format .` to ensure code quality and consistency.
+- **Commit and push separately:** run `git commit` first, then `git push` as separate steps (avoid chaining commit+push).
+- Always ask before pushing to any remote.
 
 ## Troubleshooting ⚠️
 - If you see transport errors, confirm:
