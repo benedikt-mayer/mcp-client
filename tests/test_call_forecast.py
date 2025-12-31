@@ -1,11 +1,8 @@
 """Tests for call_forecast.py client module."""
 
 from unittest.mock import AsyncMock, MagicMock
-
+import re
 import pytest
-
-# Import the main function from call_forecast for testing
-# We'll test the components that can be tested in isolation
 
 
 async def test_uri_validation_valid_http():
@@ -40,9 +37,21 @@ async def test_uri_validation_invalid_scheme():
             )
 
 
-def test_tool_search_finds_get_forecast():
+def test_forward_geocode_tool_search():
+    """Test that forward_geocode tool is found in a list of tools."""
+    tool_names = ["forward_geocode", "reverse_geocode", "other_tool"]
+
+    found = None
+    for name in tool_names:
+        if "forward_geocode" in name:
+            found = name
+            break
+
+    assert found == "forward_geocode"
+
+
+def test_get_forecast_tool_search():
     """Test that get_forecast tool is found in a list of tools."""
-    # Mock tool objects
     tool_names = ["get_forecast", "save_raw_forecast", "other_tool"]
 
     found = None
@@ -54,122 +63,185 @@ def test_tool_search_finds_get_forecast():
     assert found == "get_forecast"
 
 
-def test_tool_search_with_partial_match():
-    """Test that partial matching works for tool search."""
-    tool_names = ["fetch_forecast", "get_forecast_data", "current_weather"]
+def test_coordinates_extraction_from_response():
+    """Test extracting latitude and longitude from geocoding response."""
+    response_text = "1. Paris (Île-de-France, France) -> lat=48.8566, lon=2.3522"
 
-    found = None
-    for name in tool_names:
-        if "get_forecast" in name:
-            found = name
-            break
+    match = re.search(r"lat=([-\d.]+), lon=([-\d.]+)", response_text)
+    assert match is not None
+    lat = float(match.group(1))
+    lon = float(match.group(2))
 
-    assert found == "fetch_forecast_data" or found == "get_forecast_data"
-    # In the actual code, it would find the first match containing "get_forecast"
-
-
-def test_tool_not_found():
-    """Test behavior when get_forecast tool is not found."""
-    tool_names = ["save_forecast", "list_tools"]
-
-    found = None
-    for name in tool_names:
-        if "get_forecast" in name:
-            found = name
-            break
-
-    assert found is None
+    assert lat == 48.8566
+    assert lon == 2.3522
 
 
-def test_args_construction():
-    """Test that tool arguments are constructed correctly."""
-    latitude = 49.48
-    longitude = 8.446
+def test_coordinates_extraction_negative_values():
+    """Test extracting negative coordinates."""
+    response_text = (
+        "1. Sydney (New South Wales, Australia) -> lat=-33.8688, lon=151.2093"
+    )
+
+    match = re.search(r"lat=([-\d.]+), lon=([-\d.]+)", response_text)
+    assert match is not None
+    lat = float(match.group(1))
+    lon = float(match.group(2))
+
+    assert lat == -33.8688
+    assert lon == 151.2093
+
+
+def test_coordinates_extraction_no_match():
+    """Test handling when coordinates cannot be extracted."""
+    response_text = "No location found"
+
+    match = re.search(r"lat=([-\d.]+), lon=([-\d.]+)", response_text)
+    assert match is None
+
+
+async def test_geocoding_args_construction():
+    """Test that geocoding tool arguments are constructed correctly."""
+    place_name = "Paris"
+    args = {"query": place_name}
+
+    assert args["query"] == "Paris"
+    assert len(args) == 1
+
+
+async def test_forecast_args_construction():
+    """Test that forecast tool arguments are constructed correctly."""
+    latitude = 48.8566
+    longitude = 2.3522
 
     args = {"latitude": latitude, "longitude": longitude}
 
-    assert args["latitude"] == 49.48
-    assert args["longitude"] == 8.446
+    assert args["latitude"] == 48.8566
+    assert args["longitude"] == 2.3522
     assert len(args) == 2
 
 
-async def test_mock_client_session():
-    """Test that a mock ClientSession behaves as expected."""
-    mock_session = AsyncMock()
-
-    # Mock the list_tools response
-    mock_tool = MagicMock()
-    mock_tool.name = "get_forecast"
-    mock_response = MagicMock()
-    mock_response.tools = [mock_tool]
-
-    mock_session.list_tools.return_value = mock_response
-
-    # Test listing tools
-    response = await mock_session.list_tools()
-    assert response.tools[0].name == "get_forecast"
-    mock_session.list_tools.assert_called_once()
-
-
-async def test_mock_tool_call():
-    """Test that a mock tool call returns expected content."""
+async def test_mock_geocoding_call():
+    """Test that a mock geocoding tool call returns expected content."""
     mock_session = AsyncMock()
 
     # Mock the call_tool response
     mock_result = MagicMock()
-    mock_result.content = "Weather forecast data here"
+    mock_result.content = [
+        MagicMock(text="1. Paris (Île-de-France, France) -> lat=48.8566, lon=2.3522")
+    ]
+
+    mock_session.call_tool.return_value = mock_result
+
+    # Test calling a tool
+    result = await mock_session.call_tool("forward_geocode", {"query": "Paris"})
+    assert "48.8566" in result.content[0].text
+    mock_session.call_tool.assert_called_once_with(
+        "forward_geocode", {"query": "Paris"}
+    )
+
+
+async def test_mock_forecast_call():
+    """Test that a mock forecast tool call returns expected content."""
+    mock_session = AsyncMock()
+
+    # Mock the call_tool response
+    mock_result = MagicMock()
+    mock_result.content = [MagicMock(text="Temperature: 10°C\nConditions: Cloudy")]
 
     mock_session.call_tool.return_value = mock_result
 
     # Test calling a tool
     result = await mock_session.call_tool(
-        "get_forecast", {"latitude": 49.48, "longitude": 8.446}
+        "get_forecast", {"latitude": 48.8566, "longitude": 2.3522}
     )
-    assert result.content == "Weather forecast data here"
+    assert "Temperature" in result.content[0].text
     mock_session.call_tool.assert_called_once_with(
-        "get_forecast", {"latitude": 49.48, "longitude": 8.446}
+        "get_forecast", {"latitude": 48.8566, "longitude": 2.3522}
     )
 
 
-def test_result_content_extraction():
-    """Test extracting content from a tool result."""
-    mock_result = MagicMock()
-    mock_result.content = ["Weather summary:\nTemperature: 10°C\nConditions: Cloudy"]
-
-    # Simulate printing result content
-    try:
-        content_str = str(mock_result.content)
-        assert "Weather" in content_str
-    except Exception:
-        pytest.fail("Failed to extract result content")
-
-
-async def test_server_uri_environment_variable():
-    """Test that server URI can be read from environment."""
+async def test_server_uri_environment_variables():
+    """Test that server URIs can be read from environment."""
     import os
 
-    os.environ["MCP_SERVER"] = "http://localhost:8000/mcp"
-    uri = os.environ.get("MCP_SERVER")
-    assert uri == "http://localhost:8000/mcp"
+    os.environ["GEO_SERVER"] = "http://localhost:8001/mcp"
+    os.environ["WEATHER_SERVER"] = "http://localhost:8000/mcp"
+
+    geo_uri = os.environ.get("GEO_SERVER")
+    weather_uri = os.environ.get("WEATHER_SERVER")
+
+    assert geo_uri == "http://localhost:8001/mcp"
+    assert weather_uri == "http://localhost:8000/mcp"
 
 
-def test_invalid_server_uri_missing():
-    """Test that missing server URI raises appropriate error."""
-    server_uri = None
+def test_invalid_geo_server_uri_missing():
+    """Test that missing geo server URI raises appropriate error."""
+    geo_server_uri = None
 
-    if not server_uri:
+    if not geo_server_uri:
         with pytest.raises(SystemExit):
             raise SystemExit(
-                "Please specify --server or set MCP_SERVER to an http(s):// URI"
+                "Please specify --geo-server or set GEO_SERVER to an http(s):// URI"
             )
 
 
-async def test_argparse_server_flag():
-    """Test argument parsing for server flag."""
+def test_invalid_weather_server_uri_missing():
+    """Test that missing weather server URI raises appropriate error."""
+    weather_server_uri = None
+
+    if not weather_server_uri:
+        with pytest.raises(SystemExit):
+            raise SystemExit(
+                "Please specify --weather-server or set WEATHER_SERVER to an http(s):// URI"
+            )
+
+
+def test_missing_place_name():
+    """Test that missing place name raises appropriate error."""
+    place_name = None
+
+    if not place_name:
+        with pytest.raises(SystemExit):
+            raise SystemExit("Please provide a place name")
+
+
+async def test_argparse_place_argument():
+    """Test argument parsing for place name."""
     import argparse
 
     parser = argparse.ArgumentParser(description="Test parser")
-    parser.add_argument("--server", help="Server URI")
+    parser.add_argument("place", help="Place name")
 
-    args = parser.parse_args(["--server", "http://127.0.0.1:8000/mcp"])
-    assert args.server == "http://127.0.0.1:8000/mcp"
+    args = parser.parse_args(["Paris"])
+    assert args.place == "Paris"
+
+
+async def test_argparse_geo_and_weather_servers():
+    """Test argument parsing for geo and weather server flags."""
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Test parser")
+    parser.add_argument("place", help="Place name")
+    parser.add_argument(
+        "--geo-server",
+        default="http://127.0.0.1:8001/mcp",
+        help="Geo server URI",
+    )
+    parser.add_argument(
+        "--weather-server",
+        default="http://127.0.0.1:8000/mcp",
+        help="Weather server URI",
+    )
+
+    args = parser.parse_args(
+        [
+            "Paris",
+            "--geo-server",
+            "http://custom:8001/mcp",
+            "--weather-server",
+            "http://custom:8000/mcp",
+        ]
+    )
+    assert args.place == "Paris"
+    assert args.geo_server == "http://custom:8001/mcp"
+    assert args.weather_server == "http://custom:8000/mcp"
